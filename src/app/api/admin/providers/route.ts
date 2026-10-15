@@ -1,0 +1,7 @@
+import { NextRequest,NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireRole } from "@/lib/session";
+export async function GET(){const admin=await requireRole("ADMIN");if(!admin)return NextResponse.json({error:"Not authorized."},{status:403});const providers=await prisma.providerProfile.findMany({include:{user:{select:{name:true,email:true,phone:true}},services:{include:{category:true}},portfolio:true},orderBy:{createdAt:"desc"}});return NextResponse.json({providers});}
+const schema=z.object({providerId:z.string().min(1),status:z.enum(["APPROVED","REJECTED"]),rejectionReason:z.string().max(500).optional().default("")});
+export async function PATCH(req:NextRequest){const admin=await requireRole("ADMIN");if(!admin)return NextResponse.json({error:"Not authorized."},{status:403});const parsed=schema.safeParse(await req.json());if(!parsed.success)return NextResponse.json({error:"Invalid review action."},{status:400});const d=parsed.data;const profile=await prisma.providerProfile.findUnique({where:{id:d.providerId}});if(!profile)return NextResponse.json({error:"Application not found."},{status:404});const updated=await prisma.providerProfile.update({where:{id:d.providerId},data:{approvalStatus:d.status,rejectionReason:d.status==="REJECTED"?d.rejectionReason:null,approvedAt:d.status==="APPROVED"?new Date():null}});return NextResponse.json({ok:true,status:updated.approvalStatus});}

@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function NotFound(){return <main className="shell grid min-h-[55vh] place-items-center py-12 text-center"><div><p className="eyebrow">404 · Not found</p><h1 className="mt-3 text-4xl font-semibold tracking-[-.06em]">This page isn’t here.</h1><p className="mt-3 text-sm text-[#686d75]">The provider may be unavailable or the link may be incorrect.</p><Link href="/services" className="btn btn-primary mt-6">Browse services</Link></div></main>}

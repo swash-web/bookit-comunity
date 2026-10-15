@@ -1,0 +1,6 @@
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import { SubscriptionPlans } from "./subscription-plans";
+export const dynamic="force-dynamic";
+export default async function SubscriptionPage(){const user=await getSession();if(!user)redirect("/login");if(user.role!=="SERVICE_PROVIDER")redirect("/dashboard");let current=await prisma.subscription.findFirst({where:{userId:user.id},orderBy:{createdAt:"desc"}});if(!current){current=await prisma.subscription.create({data:{userId:user.id,plan:"TRIAL",status:"TRIALING",trialEndsAt:new Date(Date.now()+14*24*60*60*1000)}});}return <main className="shell min-h-[70vh] py-10 sm:py-14"><p className="eyebrow">Provider membership</p><h1 className="mt-2 text-3xl font-semibold tracking-[-.05em] sm:text-4xl">Plans for growing your business.</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-[#686d75]">New provider accounts include a 14-day trial. Choose a plan when you are ready to continue.</p><div className="mt-8"><SubscriptionPlans current={current?{plan:current.plan,status:current.status,trialEndsAt:current.trialEndsAt,currentPeriodEnd:current.currentPeriodEnd}:null}/></div></main>}

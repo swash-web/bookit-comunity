@@ -1,0 +1,11 @@
+"use client";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { LockKeyhole } from "lucide-react";
+function LoginForm() {
+ const router=useRouter(); const search=useSearchParams(); const [error,setError]=useState(""); const [busy,setBusy]=useState(false);
+ async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setError("");setBusy(true);const form=new FormData(e.currentTarget);const res=await fetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(form.entries()))});const data=await res.json();setBusy(false);if(!res.ok){setError(data.error||"Unable to sign in.");return;}router.push(search.get("next")||data.redirect||"/dashboard");router.refresh();}
+ return <form onSubmit={submit} className="space-y-4"><div><label className="label">Email address</label><input className="input" type="email" name="email" required autoComplete="email" placeholder="you@example.com"/></div><div><label className="label">Password</label><input className="input" type="password" name="password" required autoComplete="current-password" placeholder="Your password"/></div>{error&&<p className="text-sm text-red-600">{error}</p>}<button disabled={busy} className="btn btn-primary w-full">{busy?"Signing in…":"Sign in"}</button></form>;
+}
+export default function LoginPage(){return <main className="shell grid min-h-[68vh] place-items-center py-12"><div className="w-full max-w-[420px]"><div className="mb-6 grid h-12 w-12 place-items-center rounded-2xl bg-[#eaf4ee] text-[#146c55]"><LockKeyhole size={21}/></div><p className="eyebrow">Welcome back</p><h1 className="mt-2 text-3xl font-semibold tracking-[-.05em]">Sign in to BOOKIT.</h1><p className="mt-3 text-sm leading-6 text-[#686d75]">Manage your service requests or continue building your provider profile.</p><div className="mt-7 rounded-3xl border border-[#e7e8eb] p-6"><Suspense fallback={<p className="text-sm">Loading sign-in form…</p>}><LoginForm/></Suspense></div><p className="mt-5 text-center text-sm text-[#686d75]">New to BOOKIT? <Link className="font-semibold text-[#146c55]" href="/register">Create an account</Link></p></div></main>}

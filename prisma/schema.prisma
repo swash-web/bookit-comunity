@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  SERVICE_PROVIDER
+  ADMIN
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  CANCELLED
+}
+
+enum MarketplaceListingType {
+  PRODUCT
+  RENTAL
+  SPACE
+}
+
+enum MarketplaceRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PENDING_PAYMENT
+  EXPIRED
+  CANCELLED
+}
+
+model User {
+  id           String            @id @default(cuid())
+  name         String
+  email        String            @unique
+  passwordHash String
+  role         Role              @default(CUSTOMER)
+  phone        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  provider     ProviderProfile?
+  customerRequests ServiceRequest[] @relation("CustomerRequests")
+  reviews      Review[]          @relation("CustomerReviews")
+  marketplaceRequests MarketplaceRequest[]
+  postLikes        PostLike[]
+  postComments     PostComment[]
+  subscriptions    Subscription[]
+  providerRatings  ProviderRating[]
+}
+
+model ProviderProfile {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName   String?
+  avatarUrl      String?
+  providerKind   String         @default("SERVICE")
+  transportPartnerType String?
+  bio            String         @default("")
+  location       String         @default("Buea")
+  approvalStatus ApprovalStatus @default(PENDING)
+  rejectionReason String?
+  approvedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  services       ProviderService[]
+  portfolio      PortfolioItem[]
+  requests       ServiceRequest[]
+  reviews        Review[]
+  marketplaceListings MarketplaceListing[]
+  posts          ProviderPost[]
+  ratings        ProviderRating[]
+  @@index([approvalStatus, location])
+}
+
+model ServiceCategory {
+  id        String            @id @default(cuid())
+  name      String            @unique
+  slug      String            @unique
+  icon      String            @default("wrench")
+  createdAt DateTime          @default(now())
+  services  ProviderService[]
+}
+
+model ProviderService {
+  id           String          @id @default(cuid())
+  providerId   String
+  provider     ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  categoryId   String
+  category     ServiceCategory @relation(fields: [categoryId], references: [id])
+  title        String
+  description  String          @default("")
+  priceFrom    Int?
+  quoteOnly    Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  @@index([categoryId])
+  @@index([providerId])
+}
+
+model PortfolioItem {
+  id          String          @id @default(cuid())
+  providerId  String
+  provider    ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  title       String
+  imageUrl    String
+  description String          @default("")
+  createdAt   DateTime        @default(now())
+}
+
+model ServiceRequest {
+  id           String        @id @default(cuid())
+  customerId   String
+  customer     User          @relation("CustomerRequests", fields: [customerId], references: [id], onDelete: Cascade)
+  providerId   String
+  provider     ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  serviceTitle String
+  description  String
+  location     String
+  preferredAt  DateTime?
+  contactPhone String
+  status       RequestStatus @default(PENDING)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  review       Review?
+  @@index([customerId, status])
+  @@index([providerId, status])
+}
+
+model Review {
+  id         String          @id @default(cuid())
+  customerId String
+  customer   User            @relation("CustomerReviews", fields: [customerId], references: [id], onDelete: Cascade)
+  providerId String
+  provider   ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  requestId  String          @unique
+  request    ServiceRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String          @default("")
+  createdAt  DateTime        @default(now())
+  @@index([providerId])
+}
+
+
+model MarketplaceListing {
+  id          String                  @id @default(cuid())
+  providerId  String
+  provider    ProviderProfile         @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  type        MarketplaceListingType
+  title       String
+  description String
+  category    String
+  location    String
+  price       Int
+  priceUnit   String
+  deposit     Int                     @default(0)
+  imageUrl    String?
+  available   Boolean                 @default(true)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  requests    MarketplaceRequest[]
+
+  @@index([type, available])
+  @@index([providerId, createdAt])
+  @@index([location])
+}
+
+model MarketplaceRequest {
+  id           String                   @id @default(cuid())
+  listingId    String
+  listing      MarketplaceListing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  customerId   String
+  customer     User                     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  quantity     Int                      @default(1)
+  delivery     Boolean                  @default(false)
+  deliveryNote String?
+  contactPhone String
+  startDate    DateTime?
+  endDate      DateTime?
+  message      String                   @default("")
+  status       MarketplaceRequestStatus @default(PENDING)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  @@index([listingId, status])
+  @@index([customerId, status])
+}
+
+
+model ProviderPost {
+  id          String          @id @default(cuid())
+  providerId  String
+  provider    ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  content     String          @db.VarChar(2000)
+  imageUrl    String?
+  origin      String?
+  destination String?
+  category    String          @default("UPDATE")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  likes       PostLike[]
+  comments    PostComment[]
+  @@index([createdAt])
+  @@index([providerId, createdAt])
+}
+
+model PostLike {
+  id        String       @id @default(cuid())
+  postId    String
+  post      ProviderPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+model PostComment {
+  id        String       @id @default(cuid())
+  postId    String
+  post      ProviderPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String       @db.VarChar(1000)
+  createdAt DateTime     @default(now())
+  @@index([postId, createdAt])
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan              String             @default("TRIAL")
+  requestedPlan     String?
+  status            SubscriptionStatus @default(TRIALING)
+  trialEndsAt       DateTime?
+  currentPeriodEnd  DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  @@index([userId, status])
+}
+
+
+model ProviderRating {
+  id         String          @id @default(cuid())
+  providerId String
+  provider   ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String          @default("") @db.VarChar(500)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  @@unique([providerId, userId])
+  @@index([providerId, createdAt])
+}

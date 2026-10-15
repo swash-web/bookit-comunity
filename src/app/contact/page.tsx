@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function ContactPage(){return <main className="shell max-w-3xl py-14"><p className="eyebrow">Get in touch</p><h1 className="mt-2 text-4xl font-semibold tracking-[-.05em]">Contact BOOKIT.</h1><p className="mt-5 text-sm leading-7 text-[#686d75]">Questions about joining as a provider or using the platform? For this MVP, contact details can be added by the founder before public launch.</p><Link href="/register?role=provider" className="btn btn-primary mt-6">Apply as a provider</Link></main>}

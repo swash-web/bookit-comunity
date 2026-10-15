@@ -1,0 +1,6 @@
+import Link from "next/link";
+import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import { CommunityFeed } from "./community-feed";
+export const dynamic = "force-dynamic";
+export default async function CommunityPage(){const user=await getSession();let providerCanPost=false;if(user?.role==="SERVICE_PROVIDER"){const p=await prisma.providerProfile.findUnique({where:{userId:user.id},select:{approvalStatus:true}});providerCanPost=p?.approvalStatus==="APPROVED";}return <main className="shell min-h-[70vh] py-8 sm:py-12"><div className="mb-8 rounded-3xl bg-[#f5f8f6] p-6 sm:p-9"><p className="eyebrow">BOOKIT community</p><div className="mt-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="text-3xl font-semibold tracking-[-.055em] sm:text-4xl">Real work. Real updates.</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-[#626871]">See completed deliveries, customer projects, and updates from local providers, transport agencies, and independent agents.</p></div>{!user&&<Link href="/register" className="btn btn-primary shrink-0">Join BOOKIT</Link>}</div></div><CommunityFeed signedIn={!!user} providerCanPost={providerCanPost} canRate={user?.role==="CUSTOMER"}/></main>}
